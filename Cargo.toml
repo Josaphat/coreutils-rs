@@ -1,0 +1,8 @@
+[package]
+name = "rust-utils"
+version = "0.1.0"
+authors = ["Josaphat Valdivia <jos@josaphat.co>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.*"
