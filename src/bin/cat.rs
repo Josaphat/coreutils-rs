@@ -28,7 +28,6 @@ fn main() {
     for filename in files {
         if filename == "-" {
             // Read standard input until EOF
-            eprintln!("Reading from standard input");
             let mut contents = String::new();
             io::stdin()
                 .read_to_string(&mut contents)
