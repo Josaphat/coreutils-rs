@@ -1,8 +1,9 @@
 [package]
-name = "rust-utils"
+name = "coreutils-rs"
 version = "0.1.0"
 authors = ["Josaphat Valdivia <jos@josaphat.co>"]
 edition = "2018"
+license = "GPL-3.0"
 
 [dependencies]
 clap = "2.*"
