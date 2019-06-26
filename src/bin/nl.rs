@@ -233,7 +233,7 @@ fn nl(
         }
         if line == "\\:\\:" {
             println!("{}", "");
-            // Rese the line count
+            // Reset the line count
             if !no_renumber {
                 line_count = starting_line_number;
             }
