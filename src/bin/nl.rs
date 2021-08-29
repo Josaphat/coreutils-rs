@@ -174,7 +174,7 @@ fn main() {
         .expect("Invalid value for -w, --number-width=NUMBER");
 
     let filename = matches.value_of("file").unwrap_or("-");
-    let reader: Box<io::BufRead> = match filename {
+    let reader: Box<dyn io::BufRead> = match filename {
         "-" => Box::new(io::BufReader::new(io::stdin())),
         filename => Box::new(io::BufReader::new(fs::File::open(filename).unwrap())),
     };
@@ -203,7 +203,7 @@ fn nl(
     starting_line_number: u32,
     line_increment: u32,
     number_width: usize,
-    reader: Box<io::BufRead>,
+    reader: Box<dyn io::BufRead>,
 ) {
     let mut line_count = starting_line_number;
     let mut section = "BODY";
