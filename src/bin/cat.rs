@@ -6,6 +6,7 @@ use std::fs;
 use std::io;
 use std::io::prelude::*;
 use std::process;
+use std::str;
 
 fn main() {
     let matches = App::new("rust-cat")
@@ -23,26 +24,38 @@ fn main() {
              .multiple(true)
         ).get_matches();
 
+    // unwrap is fine here; FILE will have a default.
     let files: Vec<_> = matches.values_of("FILE").unwrap().collect();
 
     for filename in files {
-        if filename == "-" {
-            // Read standard input until EOF
-            let mut contents = String::new();
-            io::stdin()
-                .read_to_string(&mut contents)
-                .unwrap_or_else(|err| {
-                    eprintln!("Error reading stdin: {}", err);
-                    process::exit(1);
-                });
-            print!("{}", contents);
+        let reader: Box<dyn io::Read> = if filename == "-" {
+            Box::new(io::stdin())
         } else {
-            // Open the file and read its contents.
-            let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
+            Box::new(fs::File::open(filename).unwrap_or_else(|err| {
                 eprintln!("Error reading file `{}`: {}", filename, err);
                 process::exit(1);
-            });
-            print!("{}", contents);
+            }))
+        };
+        dump_file(reader, filename)
+    }
+}
+
+fn dump_file(mut reader: Box<dyn io::Read>, filename: &str) {
+    const BUF_SIZE: usize = 1024;
+
+    let mut buffer = [0; BUF_SIZE];
+    loop {
+        let n = reader.read(&mut buffer).unwrap_or_else(|err| {
+            eprintln!("Error reading file `{}`: {}", filename, err);
+            process::exit(1);
+        });
+        if n == 0 {
+            break;
         }
+        let s = str::from_utf8(&buffer[0..n]).unwrap_or_else(|err| {
+            eprintln!("Error while reading file `{}`: {}", filename, err);
+            process::exit(1);
+        });
+        print!("{}", s);
     }
 }
