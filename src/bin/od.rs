@@ -3,8 +3,7 @@
 use clap::{App, Arg};
 use std::fs::File;
 use std::io;
-use std::io::prelude::*;
-use std::io::{Error, ErrorKind, Read};
+use std::io::Read;
 use std::process;
 use std::vec;
 
@@ -41,7 +40,7 @@ enum CharacterWidth {
 
 struct Format {
     ftype: FormatType,
-    character_width: i32,
+    character_width: usize,
     is_display: bool,
 }
 
@@ -67,56 +66,157 @@ fn main() {
                 .required(false)
                 .multiple(true),
         )
+        .arg(
+            Arg::with_name("address_radix")
+                           .short('A')
+                           .long("address-radix")
+                           .takes_value(true)
+                           .value_name("radix")
+                           .help("Select the base in which file offsets are printed. radix can be one of the following:\n\td - decimal,\n\to - octal,\n\tx - hexadecimal,\n\tn - none (do not print offsets).")
+                           .default_value("o")
+        )
         .get_matches();
 
-    let address_radix = AddressRadix::Octal;
+    let address_radix = match matches.value_of("address_radix").unwrap_or_else(|| {
+        eprintln!("invalid output address radix. must be one character from [doxn]");
+        process::exit(1);
+    }) {
+        "d" => AddressRadix::Decimal,
+        "x" => AddressRadix::Hexadecimal,
+        "o" => AddressRadix::Octal,
+        "n" => AddressRadix::None,
+        x => {
+            eprintln!(
+                "invalid output address radix '{}'. Must be one character from [doxn]",
+                x
+            );
+            process::exit(1);
+        }
+    };
+
     let width = 16; // number of bytes on a line.
     let output_duplicates = true;
 
     // The default format, if unspecified, is "oS". On a platform
     // where a 'short' is 16 bits, this is the same as "o2".
     // let formats = vec![Format{ftype: FormatType::Octal, character_width: 2, is_display: false}];
-    let mut offset = 0;
-
-    let mut newline = false;
+    let offset = 0;
 
     // Unwrap is fine here; FILE will have a default.
     let files: Vec<_> = matches.values_of("FILE").unwrap().collect();
-    'fileloop: for filename in files {
-        let mut reader: Box<dyn io::Read> = if filename == "-" {
-            Box::new(io::stdin())
-        } else {
-            Box::new(File::open(filename).unwrap_or_else(|err| {
-                eprintln!("Error reading file `{}`: {}", filename, err);
-                process::exit(1);
-            }))
+    od(
+        files,
+        offset,
+        output_duplicates,
+        address_radix,
+        Format {
+            ftype: FormatType::Octal,
+            character_width: 2,
+            is_display: false,
+        },
+        width,
+    )
+}
+
+// Instead of iterating over the files in a loop, we'll determine how
+// many bytes to read from a line,
+fn od(
+    files: Vec<&str>,
+    mut offset: usize,
+    output_duplicates: bool,
+    addr_radix: AddressRadix,
+    fmt: Format,
+    width: usize,
+) {
+    let mut fs_iter = files.iter();
+
+    let mut reader = open_reader(match fs_iter.next() {
+        Some(x) => x,
+        _ => return,
+    });
+
+    let mut end_of_input = false;
+    loop {
+        // Beginning of line
+        match addr_radix {
+            AddressRadix::Octal => print!("{:07o}", offset),
+            AddressRadix::Hexadecimal => print!("{:06x}", offset),
+            AddressRadix::Decimal => print!("{:07}", offset),
+            AddressRadix::None => (),
         };
 
-        let mut eof = false;
-        while !eof {
-            print!("{:07o}", offset);
+        // The GNU version of od appears to dump one final beginning
+        // of line offest.
+        if end_of_input {
+            println!("");
+            break;
+        }
 
-            // Read an integer
-            for i in 0..(width / 2) {
-                let mut int_bytes = vec![0; 2];
-                let n = reader.read(&mut int_bytes).unwrap();
-                if n == 0 {
-                    // EOF. Go to next file.
-                    eof = true;
+        let mut line_reads = width / fmt.character_width;
+
+        for i in 0..line_reads {
+            let mut int_bytes = vec![0; 2];
+            let mut n = reader.read(&mut int_bytes).unwrap();
+            if n == 0 {
+                // If we're at EOF, attempt to open the next file.
+                // If there is no next file, we're done.
+                reader = open_reader(match fs_iter.next() {
+                    Some(x) => x,
+                    _ => {
+                        end_of_input = true;
+                        break;
+                    }
+                });
+                continue;
+            } else if n < fmt.character_width {
+                // I'm being a bit naughty here... This loop is just
+                // so that I can break out if open_reader fails...
+                loop {
+                    reader = open_reader(match fs_iter.next() {
+                        Some(x) => x,
+                        _ => {
+                            end_of_input = true;
+                            break;
+                        }
+                    });
                     break;
                 }
 
-                let int = parse_i16(
-                    int_bytes[0],
-                    if n > 1 { int_bytes[1] } else { 0 },
-                    Endian::Little,
-                );
-
-                print!(" {:06o}", int);
-
-                offset += n;
+                if !end_of_input {
+                    let mut bonus_byte = vec![0; 1];
+                    let bonus_n = reader.read(&mut bonus_byte).unwrap();
+                    if bonus_n == 0 {
+                        // An error, I think. We just opened this file.
+                        eprintln!("Error reading file");
+                        process::exit(1);
+                    }
+                    n += bonus_n;
+                    int_bytes[1] = bonus_byte[0];
+                } else {
+                    // We aren't going to get a full thing. Make the bonus byte a zero.
+                    int_bytes[1] = 0; // should be redundant
+                }
             }
-            println!("");
+
+            let int = parse_i16(
+                int_bytes[0],
+                if n > 1 { int_bytes[1] } else { 0 },
+                Endian::Little,
+            );
+            print!(" {:06o}", int);
+            offset += n;
         }
+        println!("");
+    }
+}
+
+fn open_reader(filename: &str) -> Box<dyn io::Read> {
+    if filename == "-" {
+        Box::new(io::stdin())
+    } else {
+        Box::new(File::open(filename).unwrap_or_else(|err| {
+            eprintln!("Error reading file `{}`: {}", filename, err);
+            process::exit(1);
+        }))
     }
 }
