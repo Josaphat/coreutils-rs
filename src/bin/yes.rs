@@ -11,10 +11,10 @@ fn main() {
         .author("Jos V. <jos@josaphat.co>")
         .about("Prints the given arguments forever until killed.")
         .arg(
-            Arg::with_name("string")
+            Arg::new("string")
                 .value_name("STRING")
                 .default_value("y")
-                .multiple(true),
+                .multiple_occurrences(true),
         )
         .get_matches();
     let string = matches

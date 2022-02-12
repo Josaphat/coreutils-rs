@@ -13,15 +13,15 @@ fn main() {
         .version("0.1.0")
         .author("Jos V. <jos@josaphat.co>")
         .about("Rust clone of the cat utility. Concatenate FILE(s) to standard output.\n\nWith no FILE, or when FILE is -, read standard input.")
-        .arg(Arg::with_name("unbuffered")
-             .short("u")
+        .arg(Arg::new("unbuffered")
+             .short('u')
              .help("Ignored (present for POSIX compatibility)")
              .takes_value(false))
-        .arg(Arg::with_name("FILE")
+        .arg(Arg::new("FILE")
              .help("")
              .required(false)
              .default_value("-")
-             .multiple(true)
+             .multiple_occurrences(true)
         ).get_matches();
 
     // unwrap is fine here; FILE will have a default.

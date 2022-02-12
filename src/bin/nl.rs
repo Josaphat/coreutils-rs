@@ -13,8 +13,8 @@ fn main() {
         .author("Jos V. <jos@josaphat.co>")
         .about("Rust clone of the nl utility.\nNOTE: It is missing a few things, including the `pBRE` STYLE option. See documentation for more details.")
         .arg(
-            Arg::with_name("body_style")
-                .short("b")
+            Arg::new("body_style")
+                .short('b')
                 .long("body-numbering")
                 .takes_value(true)
                 .value_name("STYLE")
@@ -22,16 +22,16 @@ fn main() {
                 .default_value("t"),
         )
         .arg(
-            Arg::with_name("section_delim")
-                .short("d")
+            Arg::new("section_delim")
+                .short('d')
                 .long("section-delimiter")
                 .takes_value(true)
                 .value_name("CC")
                 .help("(CURRENTLY IGNORED) use CC for logical page delimiters"),
         )
         .arg(
-            Arg::with_name("footer_style")
-                .short("f")
+            Arg::new("footer_style")
+                .short('f')
                 .long("footer-numbering")
                 .takes_value(true)
                 .value_name("STYLE")
@@ -39,8 +39,8 @@ fn main() {
                 .default_value("n"),
         )
         .arg(
-            Arg::with_name("header_style")
-                .short("h")
+            Arg::new("header_style")
+                .short('h')
                 .long("header-numbering")
                 .takes_value(true)
                 .value_name("STYLE")
@@ -48,8 +48,8 @@ fn main() {
                 .default_value("n"),
         )
         .arg(
-            Arg::with_name("line_increment")
-                .short("i")
+            Arg::new("line_increment")
+                .short('i')
                 .long("line-increment")
                 .takes_value(true)
                 .value_name("NUMBER")
@@ -57,46 +57,46 @@ fn main() {
                 .default_value("1"),
         )
         .arg(
-            Arg::with_name("number_format")
-                .short("n")
+            Arg::new("number_format")
+                .short('n')
                 .long("number-format")
                 .value_name("FORMAT")
                 .help("insert line numbers according to FORMAT")
                 .default_value("rn"),
         )
         .arg(
-            Arg::with_name("no_renumber")
-                .short("p")
+            Arg::new("no_renumber")
+                .short('p')
                 .long("no-renumber")
                 .help("do not reset line numbers for each section")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("number_separator")
-                .short("s")
+            Arg::new("number_separator")
+                .short('s')
                 .long("number-separator")
                 .value_name("STRING")
                 .help("add STRING after (possible) line number")
                 .default_value("\t"),
         )
         .arg(
-            Arg::with_name("starting_line_number")
-                .short("v")
+            Arg::new("starting_line_number")
+                .short('v')
                 .long("starting-line-number")
                 .value_name("NUMBER")
                 .help("first line number for each section")
                 .default_value("1"),
         )
         .arg(
-            Arg::with_name("number_width")
-                .short("w")
+            Arg::new("number_width")
+                .short('w')
                 .long("number-width")
                 .value_name("NUMBER")
                 .help("use NUMBER columns for line numbers")
                 .default_value("6"),
         )
         .arg(
-            Arg::with_name("file")
+            Arg::new("file")
                 .help("A pathname of a text file to be line-numbered.")
                 .required(false),
         )

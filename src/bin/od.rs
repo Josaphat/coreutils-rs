@@ -16,32 +16,32 @@ enum AddressRadix {
 
 enum Endian {
     Little,
-    Big,
+    // Big,
 }
 
-enum FormatType {
-    NamedCharacter,
-    PrintableCharacter,
-    SignedDecimal,
-    Octal,
-    UnsignedDecimal,
-    Hexadecimal,
-}
+// enum FormatType {
+//     NamedCharacter,
+//     PrintableCharacter,
+//     SignedDecimal,
+//     Octal,
+//     UnsignedDecimal,
+//     Hexadecimal,
+// }
 
-enum CharacterWidth {
-    Char,
-    Short,
-    Int,
-    Long,
-    Float,
-    Double,
-    LongDouble,
-}
+// enum CharacterWidth {
+//     Char,
+//     Short,
+//     Int,
+//     Long,
+//     Float,
+//     Double,
+//     LongDouble,
+// }
 
 struct Format {
-    ftype: FormatType,
+    // ftype: FormatType,
     character_width: usize,
-    is_display: bool,
+    // is_display: bool,
 }
 
 fn parse_i16(a: u8, b: u8, endian: Endian) -> i16 {
@@ -50,7 +50,7 @@ fn parse_i16(a: u8, b: u8, endian: Endian) -> i16 {
 
     match endian {
         Endian::Little => x << 0 | y << 8,
-        Endian::Big => y << 0 | x << 8,
+        // Endian::Big => y << 0 | x << 8,
     }
 }
 
@@ -58,7 +58,7 @@ fn main() {
     let matches = App::new("rust-od")
         .version("0.1.0")
         .author("Jos V. <jos@josaphat.co>")
-        .about("Rust clone of the od utility.")
+        .about("Rust clone of the od utility. Very incomplete. Supports only the -A/--address-radix option")
         .arg(
             Arg::new("FILE")
                 .help("Input file to written to standard output in given formats")
@@ -110,9 +110,9 @@ fn main() {
         output_duplicates,
         address_radix,
         Format {
-            ftype: FormatType::Octal,
+            // ftype: FormatType::Octal,
             character_width: 2,
-            is_display: false,
+            // is_display: false,
         },
         width,
     )
