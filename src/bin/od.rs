@@ -60,14 +60,14 @@ fn main() {
         .author("Jos V. <jos@josaphat.co>")
         .about("Rust clone of the od utility.")
         .arg(
-            Arg::with_name("FILE")
+            Arg::new("FILE")
                 .help("Input file to written to standard output in given formats")
                 .default_value("-")
                 .required(false)
-                .multiple(true),
+                .multiple_occurrences(true),
         )
         .arg(
-            Arg::with_name("address_radix")
+            Arg::new("address_radix")
                            .short('A')
                            .long("address-radix")
                            .takes_value(true)
@@ -123,7 +123,7 @@ fn main() {
 fn od(
     files: Vec<&str>,
     mut offset: usize,
-    output_duplicates: bool,
+    _output_duplicates: bool,
     addr_radix: AddressRadix,
     fmt: Format,
     width: usize,
@@ -152,9 +152,9 @@ fn od(
             break;
         }
 
-        let mut line_reads = width / fmt.character_width;
+        let line_reads = width / fmt.character_width;
 
-        for i in 0..line_reads {
+        for _i in 0..line_reads {
             let mut int_bytes = vec![0; 2];
             let mut n = reader.read(&mut int_bytes).unwrap();
             if n == 0 {
