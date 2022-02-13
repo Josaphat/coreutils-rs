@@ -3,7 +3,9 @@
 use clap::{App, Arg};
 use std::fs::File;
 use std::io;
+use std::io::ErrorKind;
 use std::io::Read;
+use std::io::Write;
 use std::process;
 use std::vec;
 
@@ -104,7 +106,7 @@ fn main() {
 
     // Unwrap is fine here; FILE will have a default.
     let files: Vec<_> = matches.values_of("FILE").unwrap().collect();
-    od(
+    let res = od(
         files,
         offset,
         output_duplicates,
@@ -115,7 +117,14 @@ fn main() {
             // is_display: false,
         },
         width,
-    )
+    );
+    match res {
+        Err(error) => match error.kind() {
+            ErrorKind::BrokenPipe => (),
+            _ => panic!("Error: {}", error),
+        },
+        _ => (),
+    }
 }
 
 // Instead of iterating over the files in a loop, we'll determine how
@@ -127,28 +136,30 @@ fn od(
     addr_radix: AddressRadix,
     fmt: Format,
     width: usize,
-) {
+) -> io::Result<()> {
+    let mut out = io::stdout();
+
     let mut fs_iter = files.iter();
 
     let mut reader = open_reader(match fs_iter.next() {
         Some(x) => x,
-        _ => return,
+        _ => return Ok(()),
     });
 
     let mut end_of_input = false;
     loop {
         // Beginning of line
         match addr_radix {
-            AddressRadix::Octal => print!("{:07o}", offset),
-            AddressRadix::Hexadecimal => print!("{:06x}", offset),
-            AddressRadix::Decimal => print!("{:07}", offset),
+            AddressRadix::Octal => write!(out, "{:07o}", offset)?,
+            AddressRadix::Hexadecimal => write!(out, "{:06x}", offset)?,
+            AddressRadix::Decimal => write!(out, "{:07}", offset)?,
             AddressRadix::None => (),
         };
 
         // The GNU version of od appears to dump one final beginning
         // of line offest.
         if end_of_input {
-            println!("");
+            writeln!(out, "")?;
             break;
         }
 
@@ -203,11 +214,12 @@ fn od(
                 if n > 1 { int_bytes[1] } else { 0 },
                 Endian::Little,
             );
-            print!(" {:06o}", int);
+            write!(out, " {:06o}", int)?;
             offset += n;
         }
-        println!("");
+        writeln!(out, "")?;
     }
+    Ok(())
 }
 
 fn open_reader(filename: &str) -> Box<dyn io::Read> {
