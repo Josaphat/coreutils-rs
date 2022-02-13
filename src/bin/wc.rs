@@ -4,7 +4,7 @@ use clap::{App, Arg};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-struct Counts {
+struct Stats {
     bytes: usize,
     chars: usize,
     words: usize,
@@ -141,7 +141,15 @@ fn main() {
     }
 }
 
-fn wordcount(mut reader: Box<dyn BufRead>) -> Counts {
+/// Computes and returns statistics for the text readable from the
+/// given reader. The given reader is read until the EOF condition is
+/// reached.
+///
+/// When reporting the number of characters, this does not take into
+/// account "grapheme clusters," but it does consider individual code
+/// points.
+fn wordcount(mut reader: Box<dyn BufRead>) -> Stats {
+    // Keep running counts of the values we care about
     let mut bytes = 0;
     let mut chars = 0;
     let mut words = 0;
@@ -157,10 +165,10 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Counts {
             // Reached EOF
             break;
         }
-        chars += buf.len();
         let mut in_word = false;
-        for c in buf.bytes() {
-            let is_whitespace = char::is_ascii_whitespace(&(c as char));
+        for c in buf.chars() {
+            chars += 1;
+            let is_whitespace = c.is_whitespace();
             if in_word && is_whitespace {
                 in_word = false;
                 words += 1;
@@ -168,7 +176,7 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Counts {
             if !in_word && !is_whitespace {
                 in_word = true;
             }
-            if c == b'\n' {
+            if c == '\n' {
                 newlines += 1;
             }
         }
@@ -178,7 +186,7 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Counts {
         }
     }
 
-    Counts {
+    Stats {
         bytes: bytes,
         chars: chars,
         words: words,
