@@ -62,6 +62,8 @@ fn main() {
     let files: Vec<_> = matches.values_of("file").unwrap().collect();
     let files_len = files.len();
 
+    let mut files_counts = vec![];
+
     let mut bytes_tot = 0;
     let mut chars_tot = 0;
     let mut words_tot = 0;
@@ -74,51 +76,67 @@ fn main() {
             Box::new(BufReader::new(File::open(filename).unwrap()))
         };
         let res = wordcount(reader);
-        if bytes_only || chars_only || words_only || lines_only {
-            if bytes_only {
-                print!("{} ", res.bytes);
-            }
-            if chars_only {
-                print!("{} ", res.chars);
-            }
-            if words_only {
-                print!("{} ", res.words);
-            }
-            if lines_only {
-                print!("{} ", res.newlines);
-            }
-            println!("{}", if filename != "-" { filename } else { "" });
-        } else {
-            println!(
-                "{}  {}  {}  {}",
-                res.newlines,
-                res.words,
-                res.bytes,
-                if filename != "-" { filename } else { "" }
-            );
-        }
+
         bytes_tot += res.bytes;
         chars_tot += res.chars;
         words_tot += res.words;
         newlines_tot += res.newlines;
+
+        files_counts.push((filename, res));
     }
+
+    // Use the total for the bytes and make the width of the columns
+    // all equal.  Bytes is the smallest unit, so it's going to be the
+    // largest number.
+    let col_width = bytes_tot.to_string().len();
+
+    for counts in files_counts {
+        if bytes_only || chars_only || words_only || lines_only {
+            if bytes_only {
+                print!("{:1$} ", counts.1.bytes, col_width);
+            }
+            if chars_only {
+                print!("{:1$} ", counts.1.chars, col_width);
+            }
+            if words_only {
+                print!("{:1$} ", counts.1.words, col_width);
+            }
+            if lines_only {
+                print!("{:1$} ", counts.1.newlines, col_width);
+            }
+            println!("{}", if counts.0 != "-" { counts.0 } else { "" });
+        } else {
+            println!(
+                "{:4$} {:4$} {:4$} {}",
+                counts.1.newlines,
+                counts.1.words,
+                counts.1.bytes,
+                if counts.0 != "-" { counts.0 } else { "" },
+                col_width
+            );
+        }
+    }
+
     if files_len > 1 {
         if bytes_only || chars_only || words_only || lines_only {
             if bytes_only {
-                print!("{} ", bytes_tot);
+                print!("{:1$} ", bytes_tot, col_width);
             }
             if chars_only {
-                print!("{} ", chars_tot);
+                print!("{:1$} ", chars_tot, col_width);
             }
             if words_only {
-                print!("{} ", words_tot);
+                print!("{:1$} ", words_tot, col_width);
             }
             if lines_only {
-                print!("{} ", newlines_tot);
+                print!("{:1$} ", newlines_tot, col_width);
             }
             println!("{}", "total");
         } else {
-            println!("{} {} {} {}", newlines_tot, words_tot, bytes_tot, "total");
+            println!(
+                "{:4$} {:4$} {:4$} {}",
+                newlines_tot, words_tot, bytes_tot, "total", col_width
+            );
         }
     }
 }
