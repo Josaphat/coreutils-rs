@@ -54,15 +54,25 @@ fn main() {
         .after_help("This application is free software.")
         .get_matches();
 
-    let bytes_only = matches.is_present("bytes");
-    let chars_only = matches.is_present("chars");
-    let words_only = matches.is_present("words");
-    let lines_only = matches.is_present("lines");
+    let bytes_arg = matches.is_present("bytes");
+    let mut chars_arg = matches.is_present("chars");
+    let mut words_arg = matches.is_present("words");
+    let mut lines_arg = matches.is_present("lines");
+
+    // If none are specified it's as if '-clw' were specified
+    if !bytes_arg && !chars_arg && !words_arg && !lines_arg {
+        chars_arg = true;
+        lines_arg = true;
+        words_arg = true;
+    }
+    let chars_arg = chars_arg;
+    let lines_arg = lines_arg;
+    let words_arg = words_arg;
 
     let files: Vec<_> = matches.values_of("file").unwrap().collect();
     let files_len = files.len();
 
-    let mut files_counts = vec![];
+    let mut files_stats = vec![];
 
     let mut bytes_tot = 0;
     let mut chars_tot = 0;
@@ -82,7 +92,18 @@ fn main() {
         words_tot += res.words;
         newlines_tot += res.newlines;
 
-        files_counts.push((filename, res));
+        files_stats.push((filename, res));
+    }
+    if files_len > 1 {
+        files_stats.push((
+            "total",
+            Stats {
+                bytes: bytes_tot,
+                chars: chars_tot,
+                words: words_tot,
+                newlines: newlines_tot,
+            },
+        ));
     }
 
     // Use the total for the bytes and make the width of the columns
@@ -90,54 +111,20 @@ fn main() {
     // largest number.
     let col_width = bytes_tot.to_string().len();
 
-    for counts in files_counts {
-        if bytes_only || chars_only || words_only || lines_only {
-            if bytes_only {
-                print!("{:1$} ", counts.1.bytes, col_width);
-            }
-            if chars_only {
-                print!("{:1$} ", counts.1.chars, col_width);
-            }
-            if words_only {
-                print!("{:1$} ", counts.1.words, col_width);
-            }
-            if lines_only {
-                print!("{:1$} ", counts.1.newlines, col_width);
-            }
-            println!("{}", if counts.0 != "-" { counts.0 } else { "" });
-        } else {
-            println!(
-                "{:4$} {:4$} {:4$} {}",
-                counts.1.newlines,
-                counts.1.words,
-                counts.1.bytes,
-                if counts.0 != "-" { counts.0 } else { "" },
-                col_width
-            );
+    for stats in files_stats {
+        if lines_arg {
+            print!("{:1$} ", stats.1.newlines, col_width);
         }
-    }
-
-    if files_len > 1 {
-        if bytes_only || chars_only || words_only || lines_only {
-            if bytes_only {
-                print!("{:1$} ", bytes_tot, col_width);
-            }
-            if chars_only {
-                print!("{:1$} ", chars_tot, col_width);
-            }
-            if words_only {
-                print!("{:1$} ", words_tot, col_width);
-            }
-            if lines_only {
-                print!("{:1$} ", newlines_tot, col_width);
-            }
-            println!("{}", "total");
-        } else {
-            println!(
-                "{:4$} {:4$} {:4$} {}",
-                newlines_tot, words_tot, bytes_tot, "total", col_width
-            );
+        if words_arg {
+            print!("{:1$} ", stats.1.words, col_width);
         }
+        if chars_arg {
+            print!("{:1$} ", stats.1.chars, col_width);
+        }
+        if bytes_arg {
+            print!("{:1$} ", stats.1.bytes, col_width);
+        }
+        println!("{}", if stats.0 != "-" { stats.0 } else { "" });
     }
 }
 
