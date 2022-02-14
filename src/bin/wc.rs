@@ -187,9 +187,9 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Stats {
     }
 
     Stats {
-        bytes: bytes,
-        chars: chars,
-        words: words,
-        newlines: newlines,
+        bytes,
+        chars,
+        words,
+        newlines,
     }
 }
