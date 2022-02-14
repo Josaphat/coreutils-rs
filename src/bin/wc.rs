@@ -9,6 +9,7 @@ struct Stats {
     chars: usize,
     words: usize,
     newlines: usize,
+    max_line: usize,
 }
 
 fn main() {
@@ -51,6 +52,12 @@ fn main() {
                 .takes_value(false)
                 .help("Print only the newline character counts")
         )
+        .arg(
+            Arg::new("max_line_length")
+                .short('L')
+                .long("max-line-length")
+                .help("print the maximum display width")
+        )
         .after_help("This application is free software.")
         .get_matches();
 
@@ -58,9 +65,10 @@ fn main() {
     let mut chars_arg = matches.is_present("chars");
     let mut words_arg = matches.is_present("words");
     let mut lines_arg = matches.is_present("lines");
+    let max_line_arg = matches.is_present("max_line_length");
 
     // If none are specified it's as if '-clw' were specified
-    if !bytes_arg && !chars_arg && !words_arg && !lines_arg {
+    if !bytes_arg && !chars_arg && !words_arg && !lines_arg && !max_line_arg {
         chars_arg = true;
         lines_arg = true;
         words_arg = true;
@@ -78,6 +86,7 @@ fn main() {
     let mut chars_tot = 0;
     let mut words_tot = 0;
     let mut newlines_tot = 0;
+    let mut maxest_line = 0;
 
     for filename in files {
         let reader: Box<dyn BufRead> = if filename == "-" {
@@ -91,6 +100,9 @@ fn main() {
         chars_tot += res.chars;
         words_tot += res.words;
         newlines_tot += res.newlines;
+        if res.max_line > maxest_line {
+            maxest_line = res.max_line;
+        }
 
         files_stats.push((filename, res));
     }
@@ -102,6 +114,7 @@ fn main() {
                 chars: chars_tot,
                 words: words_tot,
                 newlines: newlines_tot,
+                max_line: maxest_line,
             },
         ));
     }
@@ -124,6 +137,9 @@ fn main() {
         if bytes_arg {
             print!("{:1$} ", stats.1.bytes, col_width);
         }
+        if max_line_arg {
+            print!("{:1$} ", stats.1.max_line, col_width);
+        }
         println!("{}", if stats.0 != "-" { stats.0 } else { "" });
     }
 }
@@ -141,6 +157,7 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Stats {
     let mut chars = 0;
     let mut words = 0;
     let mut newlines = 0;
+    let mut max_line = 0;
 
     loop {
         let mut buf = String::new();
@@ -153,8 +170,10 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Stats {
             break;
         }
         let mut in_word = false;
+        let mut line_length = 0;
         for c in buf.chars() {
             chars += 1;
+            line_length += 1;
             let is_whitespace = c.is_whitespace();
             if in_word && is_whitespace {
                 in_word = false;
@@ -166,10 +185,19 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Stats {
             if c == '\n' {
                 newlines += 1;
             }
+            if c.is_control() {
+                line_length -= 1;
+            } else if c == '\u{feff}' || c == '\u{fffe}' {
+                // These aren't printable...
+                line_length -= 1;
+            }
         }
         // consider end of line the end of the word
         if in_word {
             words += 1;
+        }
+        if line_length > max_line {
+            max_line = line_length;
         }
     }
 
@@ -178,5 +206,6 @@ fn wordcount(mut reader: Box<dyn BufRead>) -> Stats {
         chars,
         words,
         newlines,
+        max_line,
     }
 }
